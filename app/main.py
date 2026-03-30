@@ -28,15 +28,24 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes.stock_routes import router as stock_router
+import os
+
+
+def _get_allowed_origins():
+    origins_from_env = os.getenv("FRONTEND_ORIGINS", "")
+    if origins_from_env.strip():
+        return [origin.strip() for origin in origins_from_env.split(",") if origin.strip()]
+
+    return [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=_get_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

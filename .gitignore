@@ -9,6 +9,8 @@ venv/
 htmlcov/
 .env
 .env.*
+!.env.example
+!frontend/.env.example
 
 # Database
 *.db
