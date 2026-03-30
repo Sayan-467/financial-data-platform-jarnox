@@ -1,15 +1,18 @@
 import pandas as pd
 import numpy as np
+from sqlalchemy import text
 from app.db.database import engine
 
 def predict_stock(symbol: str, days: int = 7):
-    query = f"""
-        SELECT Date, Close FROM stock_data
-        WHERE Symbol = '{symbol}'
-        ORDER BY Date
-    """
+    query = text(
+        '''
+        SELECT "Date", "Close" FROM stock_data
+        WHERE "Symbol" = :symbol
+        ORDER BY "Date"
+        '''
+    )
 
-    df = pd.read_sql(query, engine)
+    df = pd.read_sql(query, engine, params={"symbol": symbol})
 
     closes = pd.to_numeric(df["Close"], errors="coerce").dropna()
     if closes.empty:

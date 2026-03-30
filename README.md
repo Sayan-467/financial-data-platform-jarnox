@@ -3,7 +3,7 @@
 End-to-end stock analytics system with:
 - Data ingestion from Yahoo Finance (`yfinance`)
 - Data processing with `pandas`
-- SQLite storage
+- PostgreSQL-ready storage (SQLite fallback for local)
 - FastAPI backend APIs
 - React + Vite frontend dashboard with Chart.js visualizations
 - Stock comparison and short-horizon price prediction
@@ -13,7 +13,7 @@ End-to-end stock analytics system with:
 - [Python](https://www.python.org/)
 - [FastAPI](https://fastapi.tiangolo.com/)
 - [Pandas](https://pandas.pydata.org/), [NumPy](https://numpy.org/), [scikit-learn](https://scikit-learn.org/stable/)
-- [SQLAlchemy](https://www.sqlalchemy.org/) + [SQLite](https://www.sqlite.org/index.html)
+- [SQLAlchemy](https://www.sqlalchemy.org/) + [PostgreSQL](https://www.postgresql.org/) (with SQLite fallback)
 - [React](https://react.dev/) + [Vite](https://vitejs.dev/)
 - [Chart.js](https://www.chartjs.org/) + [react-chartjs-2](https://react-chartjs-2.js.org/)
 
@@ -21,13 +21,13 @@ End-to-end stock analytics system with:
 
 ### Backend (FastAPI)
 - Serves stock APIs for companies, historical data, summary, comparison, and prediction.
-- Uses SQLite (`stocks.db`) as the data source.
+- Uses `DATABASE_URL` from environment (Postgres recommended in deployment).
 - CORS is enabled for local frontend origins (`http://localhost:5173`, `http://127.0.0.1:5173`).
 
 ### Data Pipeline
 - Fetches data using `yfinance`
 - Cleans/transforms data using `pandas`
-- Stores enriched data into SQLite table `stock_data`
+- Stores enriched data into `stock_data` table in configured database
 
 ### Frontend (React + Vite)
 - Sidebar company list
@@ -51,6 +51,8 @@ financial-data-platform-jarnox/
 |   |   `-- ml_service.py
 |   `-- main.py
 |-- data/
+|-- scripts/
+|   `-- seed_data.py
 |-- frontend/
 |   |-- src/
 |   |   |-- components/
@@ -110,39 +112,20 @@ Open:
 
 ## 6) Data Seeding / Refresh Guide
 
-If `stocks.db` is already populated, you can start backend and frontend directly.
-
-To refresh data, run Python interactively from project root:
+Set your database URL (PowerShell examples):
 
 ```powershell
-python
+# Postgres (recommended)
+$env:DATABASE_URL = "postgresql://USER:PASSWORD@HOST/DBNAME?sslmode=require"
+
+# Optional local SQLite
+# $env:DATABASE_URL = "sqlite:///./stocks.db"
 ```
 
-Then paste:
+Seed data from project root:
 
-```python
-import pandas as pd
-from app.services.data_fetcher import fetch_stock_data
-from app.services.data_processor import process_data
-from app.db.database import engine
-
-stocks = ["INFY.NS", "TCS.NS", "RELIANCE.NS", "HDFCBANK.NS"]
-all_data = []
-
-for stock in stocks:
-    df = fetch_stock_data(stock)
-    df = process_data(df)
-    all_data.append(df)
-
-final_df = pd.concat(all_data, ignore_index=True)
-final_df.to_sql("stock_data", con=engine, if_exists="replace", index=False)
-print("Data stored successfully")
-```
-
-Exit Python:
-
-```python
-exit()
+```powershell
+python scripts/seed_data.py
 ```
 
 ## 7) API Endpoints
@@ -222,7 +205,12 @@ This provides smoother, more realistic short-term behavior than simple global li
 
 ### Empty company list or no chart data
 - Ensure `stock_data` table exists and contains rows
-- Re-run data seeding steps
+- Re-run `python scripts/seed_data.py`
+
+### Internal Server Error after deploying backend
+- Confirm `DATABASE_URL` is set in deployment environment variables
+- For Neon/Postgres, keep `sslmode=require` in URL
+- Run seed command once in deployment shell: `python scripts/seed_data.py`
 
 ### Prediction line looks odd
 - Prediction is short-horizon and trend-based, not a guaranteed market forecast
